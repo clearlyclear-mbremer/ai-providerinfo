@@ -3,8 +3,10 @@ gunicorn
 openai
 langchain
 langchain-community
+langchain-openai
 chromadb
 requests
 atlassian-python-api
 tiktoken
+beautifulsoup4
 lxml
