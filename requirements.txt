@@ -7,3 +7,4 @@ chromadb
 requests
 atlassian-python-api
 tiktoken
+lxml
