@@ -1,44 +1,30 @@
 import os
 from langchain_community.document_loaders import ConfluenceLoader
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings  # NEW: updated import
 
-# === Load config from environment ===
-CONFLUENCE_URL = os.environ["CONFLUENCE_URL"]
-CONFLUENCE_USERNAME = os.environ["CONFLUENCE_USERNAME"]
-CONFLUENCE_API_KEY = os.environ["CONFLUENCE_API_KEY"]
-SPACE_KEY = os.environ.get("CONFLUENCE_SPACE_KEY", "CPI")  # fallback default if not set
-CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", 1000))
-CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", 200))
-
-# === Initialize loader ===
-print(f"Connecting to Confluence space: {SPACE_KEY} ...")
+# Initialize the Confluence loader
 loader = ConfluenceLoader(
-    url=CONFLUENCE_URL,
-    username=CONFLUENCE_USERNAME,
-    api_key=CONFLUENCE_API_KEY,
-    space_key=SPACE_KEY,
-    limit=20  # future-proof: set here, not in .load()
+    url=os.environ["CONFLUENCE_URL"],
+    username=os.environ["CONFLUENCE_USERNAME"],
+    api_key=os.environ["CONFLUENCE_API_KEY"],
+    space_key=os.environ["CONFLUENCE_SPACE_KEY"]
 )
 
-# === Load pages ===
+# Load documents (updated: init config instead of `load(limit=...)`)
 docs = loader.load()
-print(f"✅ Loaded {len(docs)} pages from Confluence.")
 
-# === Split documents ===
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=CHUNK_SIZE,
-    chunk_overlap=CHUNK_OVERLAP
-)
+# Split into chunks
+splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
-print(f"✅ Split into {len(chunks)} chunks.")
 
-# === Embed and persist ===
+# Embed and store using Chroma (auto-persisted)
 vectordb = Chroma.from_documents(
-    documents=chunks,
-    embedding=OpenAIEmbeddings(),
+    chunks,
+    embedding=OpenAIEmbeddings(),  # Updated import
     persist_directory="./chroma_store"
 )
 
-print("✅ Confluence documents embedded and stored successfully.")
+print("✅ Confluence documents embedded successfully.")
+
