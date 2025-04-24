@@ -5,3 +5,5 @@ langchain
 langchain-community
 chromadb
 requests
+atlassian-python-api
+tiktoken
