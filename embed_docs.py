@@ -18,7 +18,6 @@ loader = ConfluenceLoader(
     space_key=os.environ["CONFLUENCE_SPACE_KEY"]
 )
 docs = loader.load()
-docs = loader.load(limit=50) 
 
 # Step 3: Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
