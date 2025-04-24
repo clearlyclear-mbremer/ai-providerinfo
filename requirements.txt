@@ -1,7 +1,5 @@
 flask
 gunicorn
-openai
-langchain
 langchain-community
 langchain-openai
 chromadb
