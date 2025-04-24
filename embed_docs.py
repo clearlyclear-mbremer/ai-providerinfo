@@ -1,3 +1,5 @@
+import os
+
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
