@@ -1,36 +1,44 @@
 import os
-
 from langchain_community.document_loaders import ConfluenceLoader
-from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# Initialize the Confluence loader
+# === Load config from environment ===
+CONFLUENCE_URL = os.environ["CONFLUENCE_URL"]
+CONFLUENCE_USERNAME = os.environ["CONFLUENCE_USERNAME"]
+CONFLUENCE_API_KEY = os.environ["CONFLUENCE_API_KEY"]
+SPACE_KEY = os.environ.get("CONFLUENCE_SPACE_KEY", "CPI")  # fallback default if not set
+CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", 1000))
+CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", 200))
+
+# === Initialize loader ===
+print(f"Connecting to Confluence space: {SPACE_KEY} ...")
 loader = ConfluenceLoader(
-    url=os.environ["CONFLUENCE_URL"],
-    username=os.environ["CONFLUENCE_USERNAME"],
-    api_key=os.environ["CONFLUENCE_API_KEY"],                     # replace with your Atlassian API token
-    space_key=os.environ["CONFLUENCE_SPACE_KEY"]
+    url=CONFLUENCE_URL,
+    username=CONFLUENCE_USERNAME,
+    api_key=CONFLUENCE_API_KEY,
+    space_key=SPACE_KEY,
+    limit=20  # future-proof: set here, not in .load()
 )
 
-# Load documents from Confluence
-docs = loader.load(limit=20)
+# === Load pages ===
+docs = loader.load()
+print(f"✅ Loaded {len(docs)} pages from Confluence.")
 
-# Split documents into chunks
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200
+# === Split documents ===
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP
 )
-chunks = text_splitter.split_documents(docs)
+chunks = splitter.split_documents(docs)
+print(f"✅ Split into {len(chunks)} chunks.")
 
-# Embed and store documents using Chroma
+# === Embed and persist ===
 vectordb = Chroma.from_documents(
-    chunks,
+    documents=chunks,
     embedding=OpenAIEmbeddings(),
     persist_directory="./chroma_store"
 )
 
-# Since Chroma >=0.4 auto-persists, this is optional now
-vectordb.persist()
-
-print("Confluence documents embedded successfully.")
+print("✅ Confluence documents embedded and stored successfully.")
