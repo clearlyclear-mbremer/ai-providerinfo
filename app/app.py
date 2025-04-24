@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request, jsonify
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OpenAIEmbeddings
