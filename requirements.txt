@@ -2,5 +2,6 @@ flask
 gunicorn
 openai
 langchain
+langchain-community
 chromadb
 requests
