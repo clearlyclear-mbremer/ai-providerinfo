@@ -11,7 +11,7 @@ loader = ConfluenceLoader(
     api_key=os.environ["CONFLUENCE_API_KEY"]
 )
 
-docs = loader.load(space_key="CCPI", limit=20)
+docs = loader.load(space_key="CPI", limit=20)
 splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 chunks = splitter.split_documents(docs)
 
