@@ -1,7 +1,7 @@
 import os
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Load Confluence docs
@@ -9,9 +9,10 @@ loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
     api_key=os.environ["CONFLUENCE_API_KEY"],
-    space_key=os.environ["CONFLUENCE_SPACE_KEY"]
+    space_key=os.environ["CONFLUENCE_SPACE_KEY"],
+    limit=50
 )
-docs = loader.load(limit=50)  # bump the limit if needed
+docs = loader.load()
 
 # Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
