@@ -1,22 +1,34 @@
 from langchain_community.document_loaders import ConfluenceLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-import os
-
-# Load Confluence docs
+# Initialize the Confluence loader
 loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
-    api_key=os.environ["CONFLUENCE_API_KEY"]
+    api_key=os.environ["CONFLUENCE_API_KEY"],                     # replace with your Atlassian API token
+    space_key=os.environ["CONFLUENCE_SPACE_KEY"]
 )
 
-docs = loader.load(space_key="CPI", limit=20)
-splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-chunks = splitter.split_documents(docs)
+# Load documents from Confluence
+docs = loader.load(limit=20)
 
-# Embed and persist
-vectordb = Chroma.from_documents(chunks, embedding=OpenAIEmbeddings(), persist_directory="./chroma_store")
+# Split documents into chunks
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+chunks = text_splitter.split_documents(docs)
+
+# Embed and store documents using Chroma
+vectordb = Chroma.from_documents(
+    chunks,
+    embedding=OpenAIEmbeddings(),
+    persist_directory="./chroma_store"
+)
+
+# Since Chroma >=0.4 auto-persists, this is optional now
 vectordb.persist()
+
 print("Confluence documents embedded successfully.")
