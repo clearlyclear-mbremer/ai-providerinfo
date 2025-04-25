@@ -25,7 +25,7 @@ from langchain_openai import OpenAIEmbeddings
 embeddings = OpenAIEmbeddings()
 
 # Load or create Chroma DB
-vectordb = Chroma(persist_directory=chroma_dir, embedding_function=embeddings)
+vectordb = Chroma(persist_directory="./chroma_store", embedding_function=embeddings)
 
 # Add new documents (duplicates are possible if not filtered manually)
 vectordb.add_documents(chunks)
