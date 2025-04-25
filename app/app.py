@@ -1,13 +1,16 @@
 import os
-
 from flask import Flask, request, jsonify
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
 
-# Global vectordb and qa_chain
+# Initialize Flask app FIRST
+app = Flask(__name__)
+
+# Load persisted vector store
 vectordb = Chroma(persist_directory="./chroma_store", embedding_function=OpenAIEmbeddings())
+
+# Setup chain
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model="gpt-4"),
     retriever=vectordb.as_retriever(search_kwargs={"k": 3})
@@ -31,4 +34,3 @@ def refresh():
         retriever=vectordb.as_retriever(search_kwargs={"k": 3})
     )
     return jsonify({"message": "Vector store refreshed from disk!"})
-
