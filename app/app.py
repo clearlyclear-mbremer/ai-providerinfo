@@ -8,7 +8,7 @@ from langchain.chains import RetrievalQA
 from chromadb.config import Settings as ChromaSettings
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, template_folder="../templates")
 
 # Initialize empty vectorstore and chain
 vectordb = None
