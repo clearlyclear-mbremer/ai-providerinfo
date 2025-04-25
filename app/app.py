@@ -58,6 +58,28 @@ def refresh():
     load_vectorstore()
     return jsonify({"status": "refreshed"})
 
+@app.route("/confluence-webhook", methods=["POST"])
+def confluence_webhook():
+    """Endpoint Confluence can POST to when content is updated."""
+    try:
+        print("🔔 Received Confluence webhook event!")
+
+        # Re-run embed_docs.py when webhook received
+        subprocess.run(
+            [
+                "/opt/render/project/src/.venv/bin/python",
+                "/opt/render/project/go/src/github.com/clearlyclear-mbremer/ai-providerinfo/embed_docs.py"
+            ],
+            check=True
+        )
+        print("✅ embed_docs.py successfully refreshed after webhook.")
+
+        return jsonify({"status": "success"}), 200
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error running embed_docs.py after webhook: {e}")
+        return jsonify({"status": "error", "details": str(e)}), 500
+
+
 # Optional: Health check
 @app.route("/", methods=["GET"])
 def healthcheck():
