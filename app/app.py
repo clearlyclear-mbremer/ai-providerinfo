@@ -1,20 +1,27 @@
 import os
 from flask import Flask, request, jsonify
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
 
-# Initialize Flask app FIRST
 app = Flask(__name__)
 
-# Load persisted vector store
-vectordb = Chroma(persist_directory="./chroma_store", embedding_function=OpenAIEmbeddings())
+# Define global objects
+vectordb = None
+qa_chain = None
 
-# Setup chain
-qa_chain = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model="gpt-4"),
-    retriever=vectordb.as_retriever(search_kwargs={"k": 3})
-)
+def load_vectorstore():
+    global vectordb, qa_chain
+    embeddings = OpenAIEmbeddings()
+    vectordb = Chroma(persist_directory="./chroma_store", embedding_function=embeddings)
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=ChatOpenAI(model="gpt-4"),
+        retriever=vectordb.as_retriever(search_kwargs={"k": 3})
+    )
+    print("✅ Vector store and QA chain reloaded.")
+
+# Initial load
+load_vectorstore()
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -27,10 +34,8 @@ def ask():
 
 @app.route("/refresh", methods=["POST"])
 def refresh():
-    global vectordb, qa_chain
-    vectordb = Chroma(persist_directory="./chroma_store", embedding_function=OpenAIEmbeddings())
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=ChatOpenAI(model="gpt-4"),
-        retriever=vectordb.as_retriever(search_kwargs={"k": 3})
-    )
-    return jsonify({"message": "Vector store refreshed from disk!"})
+    try:
+        load_vectorstore()
+        return jsonify({"message": "Vector store refreshed."}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
