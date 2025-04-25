@@ -1,4 +1,5 @@
 import os
+import subprocess
 from flask import Flask, request, jsonify
 from flask import render_template
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
