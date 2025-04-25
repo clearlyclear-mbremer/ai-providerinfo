@@ -75,7 +75,14 @@ def ask_ui():
 @app.route("/refresh", methods=["POST"])
 def refresh():
     global vectordb, qa_chain
+
+    # Hard reset everything
+    vectordb = None
+    qa_chain = None
+
+    # Reload cleanly
     load_vectorstore()
+
     return jsonify({"status": "refreshed"})
 
 @app.route("/confluence-webhook", methods=["POST"])
