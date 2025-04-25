@@ -31,6 +31,25 @@ def load_vectorstore():
     )
     print("✅ Vectorstore and QA chain loaded.")
 
+def run_embed_docs_at_startup():
+    """Run embed_docs.py automatically at app startup if needed."""
+    try:
+        print("🚀 Running embed_docs.py at startup...")
+        subprocess.run(
+            [
+                "/opt/render/project/src/.venv/bin/python",
+                "/opt/render/project/go/src/github.com/clearlyclear-mbremer/ai-providerinfo/embed_docs.py"
+            ],
+            check=True
+        )
+        print("✅ embed_docs.py completed at startup.")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Failed to run embed_docs.py at startup: {e}")
+
+# 🧠 Actually run it at startup
+run_embed_docs_at_startup()
+load_vectorstore()
+
 @app.route("/ask", methods=["POST"])
 def ask():
     global vectordb, qa_chain
