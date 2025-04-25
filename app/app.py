@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify
+from flask import render_template
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.chains import RetrievalQA
@@ -46,6 +47,10 @@ def ask():
         return jsonify({"answer": answer})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/ask_ui", methods=["GET"])
+def ask_ui():
+    return render_template("index.html")
 
 @app.route("/refresh", methods=["POST"])
 def refresh():
