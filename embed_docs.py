@@ -1,5 +1,6 @@
 import os
 import shutil
+import requests 
 
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
