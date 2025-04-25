@@ -6,16 +6,12 @@ from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 
-# Load persisted vector store
+# Global vectordb and qa_chain
 vectordb = Chroma(persist_directory="./chroma_store", embedding_function=OpenAIEmbeddings())
-
-# Setup chain
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model="gpt-4"),
     retriever=vectordb.as_retriever(search_kwargs={"k": 3})
 )
-
-app = Flask(__name__)
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -25,3 +21,14 @@ def ask():
         return jsonify({"error": "Missing question"}), 400
     answer = qa_chain.run(query)
     return jsonify({"answer": answer})
+
+@app.route("/refresh", methods=["POST"])
+def refresh():
+    global vectordb, qa_chain
+    vectordb = Chroma(persist_directory="./chroma_store", embedding_function=OpenAIEmbeddings())
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=ChatOpenAI(model="gpt-4"),
+        retriever=vectordb.as_retriever(search_kwargs={"k": 3})
+    )
+    return jsonify({"message": "Vector store refreshed from disk!"})
+
