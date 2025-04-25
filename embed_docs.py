@@ -7,6 +7,7 @@ from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
 
 # Delete old Chroma store if it exists to ensure full refresh
 chroma_dir = "./chroma_store"
@@ -45,7 +46,6 @@ for idx, chunk in enumerate(chunks):
     print(chunk.page_content)
 
 # Embed with updated OpenAI package (make sure it's installed via requirements.txt)
-from langchain_openai import OpenAIEmbeddings
 embeddings = OpenAIEmbeddings()
 
 # Load or create Chroma DB
