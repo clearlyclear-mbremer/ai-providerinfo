@@ -31,10 +31,18 @@ loader = ConfluenceLoader(
     limit=50
 )
 docs = loader.load()
+print(f"✅ Loaded {len(docs)} Confluence pages")
+for idx, doc in enumerate(docs):
+    print(f"\n---- Document {idx+1} ----")
+    print(doc.page_content)
 
 # Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
+print(f"✅ Split into {len(chunks)} chunks")
+for idx, chunk in enumerate(chunks):
+    print(f"\n---- Chunk {idx+1} ----")
+    print(chunk.page_content)
 
 # Embed with updated OpenAI package (make sure it's installed via requirements.txt)
 from langchain_openai import OpenAIEmbeddings
