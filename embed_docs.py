@@ -1,19 +1,17 @@
 import os
 import shutil
-import requests
 
 from langchain_community.document_loaders import ConfluenceLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-store_dir = "./chroma_store"
+# Delete old Chroma store if it exists to ensure full refresh
+chroma_dir = "./chroma_store"
+if os.path.exists(chroma_dir):
+    shutil.rmtree(chroma_dir)
 
-# Step 1: Fully delete the old DB
-if os.path.exists(store_dir):
-    shutil.rmtree(store_dir)
-
-# Step 2: Load Confluence docs
+# Load Confluence docs
 loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
@@ -22,19 +20,20 @@ loader = ConfluenceLoader(
     limit=50
 )
 docs = loader.load()
-print(f"✅ Loaded {len(docs)} Confluence pages")
 
-# Step 3: Chunk docs
+# Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
 
-# Step 4: Rebuild the vector store from scratch
+# Embed with updated OpenAI package (make sure it's installed via requirements.txt)
+from langchain_openai import OpenAIEmbeddings
 embeddings = OpenAIEmbeddings()
-Chroma.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    persist_directory=store_dir
-)
+
+# Load or create Chroma DB
+vectordb = Chroma(persist_directory=chroma_dir, embedding_function=embeddings)
+
+# Add new documents (duplicates are possible if not filtered manually)
+vectordb.add_documents(chunks)
 
 print(f"✅ Rebuilt Chroma vector store with {len(chunks)} chunks")
 
