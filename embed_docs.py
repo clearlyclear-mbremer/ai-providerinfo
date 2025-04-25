@@ -1,18 +1,27 @@
 import os
-import hashlib
+import shutil
 import time
+
 from langchain_community.document_loaders import ConfluenceLoader
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
 
-CHROMA_DIR = "./chroma_store"
-MAX_DELETE_WAIT_SECONDS = 5
+# Set path
+store_dir = "./chroma_store"
 
-def compute_hash(text: str) -> str:
-    return hashlib.md5(text.encode("utf-8")).hexdigest()
+# Step 1: Clear the vector store with verification
+if os.path.exists(store_dir):
+    shutil.rmtree(store_dir)
+    # Confirm deletion
+    timeout = 10  # seconds
+    start_time = time.time()
+    while os.path.exists(store_dir):
+        if time.time() - start_time > timeout:
+            raise RuntimeError(f"Directory '{store_dir}' could not be deleted in time.")
+        time.sleep(0.1)
 
-# Load Confluence documents
+# Step 2: Load Confluence docs
 loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
@@ -23,50 +32,11 @@ loader = ConfluenceLoader(
 docs = loader.load()
 print(f"✅ Loaded {len(docs)} Confluence pages")
 
-# Initialize vector store
-embeddings = OpenAIEmbeddings()
-vectordb = Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
-
-# Initialize splitter
+# Step 3: Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+chunks = splitter.split_documents(docs)
 
-# Get existing IDs
-try:
-    existing_ids = set(vectordb.get()["ids"])
-except Exception:
-    existing_ids = set()
-
-chunks_to_add = []
-
-for doc in docs:
-    doc_id = doc.metadata.get("source", "") or compute_hash(doc.page_content)
-    content_hash = compute_hash(doc.page_content)
-
-    if doc_id in existing_ids:
-        vectordb.delete(doc_id=doc_id)
-        
-        # Confirm deletion before proceeding
-        start = time.time()
-        while True:
-            remaining = set(vectordb.get()["ids"])
-            if doc_id not in remaining:
-                break
-            if time.time() - start > MAX_DELETE_WAIT_SECONDS:
-                print(f"⚠️ Timeout waiting for deletion of {doc_id}, skipping update.")
-                doc_id = None  # Prevent re-adding
-                break
-            time.sleep(0.5)
-
-    if doc_id:
-        split_chunks = splitter.split_documents([doc])
-        for chunk in split_chunks:
-            chunk.metadata["doc_id"] = doc_id
-            chunk.metadata["content_hash"] = content_hash
-        chunks_to_add.extend(split_chunks)
-
-# Add to vector store
-if chunks_to_add:
-    vectordb.add_documents(chunks_to_add)
-    print(f"✅ Added {len(chunks_to_add)} updated/new chunks")
-else:
-    print("⚠️ No new documents added.")
+# Step 4: Embed and persist to Chroma
+embeddings = OpenAIEmbeddings()
+vectordb = Chroma.from_documents(chunks, embedding=embeddings, persist_directory=store_dir)
+print(f"✅ Added {len(chunks)} updated/new chunks")
