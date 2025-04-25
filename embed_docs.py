@@ -1,5 +1,6 @@
 import os
 import shutil
+import requests
 
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -36,3 +37,14 @@ Chroma.from_documents(
 )
 
 print(f"✅ Rebuilt Chroma vector store with {len(chunks)} chunks")
+
+# After embedding, call the /refresh endpoint
+refresh_url = os.getenv("REFRESH_URL", "https://ai-providerinfo.onrender.com/refresh")  # Default to localhost if not set
+try:
+    response = requests.post(refresh_url)
+    if response.status_code == 200:
+        print("✅ Successfully refreshed vector store in the running app!")
+    else:
+        print(f"⚠️ Refresh request failed with status code: {response.status_code}, message: {response.text}")
+except Exception as e:
+    print(f"❌ Failed to send refresh request: {e}")
