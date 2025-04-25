@@ -1,25 +1,8 @@
 import os
-import shutil
-import time
-
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# Set path
-store_dir = "./chroma_store"
-
-# Step 1: Clear the vector store with verification
-if os.path.exists(store_dir):
-    shutil.rmtree(store_dir)
-    # Confirm deletion
-    timeout = 10  # seconds
-    start_time = time.time()
-    while os.path.exists(store_dir):
-        if time.time() - start_time > timeout:
-            raise RuntimeError(f"Directory '{store_dir}' could not be deleted in time.")
-        time.sleep(0.1)
 
 # Load Confluence docs
 loader = ConfluenceLoader(
@@ -36,13 +19,15 @@ print(f"✅ Loaded {len(docs)} Confluence pages")
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
 
-# Embed with updated OpenAI package (make sure it's installed via requirements.txt)
+# Embed with updated OpenAI package
 from langchain_openai import OpenAIEmbeddings
 embeddings = OpenAIEmbeddings()
 
-# Load or create Chroma DB
-vectordb = Chroma(persist_directory=store_dir, embedding_function=embeddings)
+# Recreate the vector store in a fresh Chroma instance
+Chroma.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory="./chroma_store"
+)
 
-# Add new documents (duplicates are possible if not filtered manually)
-vectordb.add_documents(chunks)
-print(f"✅ Added {len(chunks)} updated/new chunks")
+print(f"✅ Rebuilt Chroma vector store with {len(chunks)} fresh chunks")
