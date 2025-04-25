@@ -1,10 +1,18 @@
 import os
-from langchain_community.document_loaders import ConfluenceLoader
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_chroma import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import shutil
 
-# Load Confluence docs
+from langchain_community.document_loaders import ConfluenceLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
+
+store_dir = "./chroma_store"
+
+# Step 1: Fully delete the old DB
+if os.path.exists(store_dir):
+    shutil.rmtree(store_dir)
+
+# Step 2: Load Confluence docs
 loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
@@ -15,19 +23,16 @@ loader = ConfluenceLoader(
 docs = loader.load()
 print(f"✅ Loaded {len(docs)} Confluence pages")
 
-# Split into chunks
+# Step 3: Chunk docs
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
 
-# Embed with updated OpenAI package
-from langchain_openai import OpenAIEmbeddings
+# Step 4: Rebuild the vector store from scratch
 embeddings = OpenAIEmbeddings()
-
-# Recreate the vector store in a fresh Chroma instance
 Chroma.from_documents(
     documents=chunks,
     embedding=embeddings,
-    persist_directory="./chroma_store"
+    persist_directory=store_dir
 )
 
-print(f"✅ Rebuilt Chroma vector store with {len(chunks)} fresh chunks")
+print(f"✅ Rebuilt Chroma vector store with {len(chunks)} chunks")
