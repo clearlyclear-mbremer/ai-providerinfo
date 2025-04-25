@@ -1,6 +1,7 @@
 import os
 import shutil
-import requests 
+import requests
+import time
 
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
@@ -9,8 +10,17 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Delete old Chroma store if it exists to ensure full refresh
 chroma_dir = "./chroma_store"
+
 if os.path.exists(chroma_dir):
     shutil.rmtree(chroma_dir)
+    # Confirm deletion before proceeding
+    timeout = 10  # seconds
+    start_time = time.time()
+    while os.path.exists(chroma_dir):
+        if time.time() - start_time > timeout:
+            raise RuntimeError(f"Timeout: Directory '{chroma_dir}' could not be deleted in time.")
+        time.sleep(0.1)  # sleep 100ms and retry
+
 
 # Load Confluence docs
 loader = ConfluenceLoader(
