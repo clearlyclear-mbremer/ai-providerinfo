@@ -1,15 +1,10 @@
 import os
-import shutil
 
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# Delete old Chroma store if it exists to ensure full refresh
-chroma_dir = "./chroma_store"
-if os.path.exists(chroma_dir):
-    shutil.rmtree(chroma_dir)
 
 # Load Confluence docs
 loader = ConfluenceLoader(
