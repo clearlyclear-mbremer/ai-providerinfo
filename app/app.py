@@ -19,14 +19,14 @@ qa_chain = None
 store_lock = threading.Lock()  # 🛡️ Protect reloading with a lock
 
 def load_vectorstore():
+    """Load the Chroma vectorstore and set up the QA chain."""
     global vectordb, qa_chain
     with store_lock:
         print("🔄 Loading vectorstore...")
 
+        # 🧹 Close old vectorstore objects in Python only (don't reset database)
         if vectordb:
-            print("🧹 Closing old vectorstore connection...")
-            vectordb._collection = None
-            vectordb._client = None
+            print("🧹 Closing old vectorstore (Python memory)...")
             vectordb = None
             qa_chain = None
 
@@ -40,17 +40,16 @@ def load_vectorstore():
             embedding_function=embeddings,
             client_settings=ChromaSettings(
                 anonymized_telemetry=False,
-                allow_reset=True,
+                allow_reset=True,  # still allow it internally if needed
             )
         )
-        print(f"✅ Vectorstore loaded with {vectordb._collection.count()} records.")
-
-        retriever = vectordb.as_retriever(search_kwargs={"k": 3})
         qa_chain = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(model="gpt-4"),
-            retriever=retriever
+            retriever=vectordb.as_retriever(search_kwargs={"k": 3})
         )
+        print(f"✅ Vectorstore loaded with {vectordb._collection.count()} records.")
         print("✅ QA chain recreated with fresh vectorstore.")
+
 
 def async_embed_docs():
     """Run embed_docs.py asynchronously after startup or webhook."""
