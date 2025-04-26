@@ -64,8 +64,8 @@ load_vectorstore()
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    """Handle questions."""
     global vectordb, qa_chain
+
     if vectordb is None or qa_chain is None:
         load_vectorstore()
 
@@ -78,7 +78,20 @@ def ask():
         answer = qa_chain.run(query)
         return jsonify({"answer": answer})
     except Exception as e:
+        # Special handling if Chroma store is missing
+        if "does not exist" in str(e):
+            print("⚠️ Vectorstore was empty. Retrying load...")
+            time.sleep(2)  # Wait briefly
+            load_vectorstore()  # Try reloading
+
+            try:
+                answer = qa_chain.run(query)
+                return jsonify({"answer": answer})
+            except Exception as inner_e:
+                return jsonify({"error": str(inner_e)}), 500
+
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/ask_ui", methods=["GET"])
 def ask_ui():
