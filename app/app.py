@@ -33,6 +33,7 @@ def load_vectorstore():
             print("⚠️ Chroma store missing or empty. Skipping load.")
             return
 
+        # 💥 Force Chroma to fully reconnect fresh
         embeddings = OpenAIEmbeddings()
         vectordb = Chroma(
             persist_directory="./chroma_store",
@@ -42,11 +43,14 @@ def load_vectorstore():
                 allow_reset=True,
             )
         )
+        print(f"✅ Vectorstore loaded with {vectordb._collection.count()} records.")
+
+        # 💥 Create a completely new QA chain too!
         qa_chain = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(model="gpt-4"),
             retriever=vectordb.as_retriever(search_kwargs={"k": 3})
         )
-        print("✅ Vectorstore and QA chain loaded.")
+        print("✅ QA chain recreated with fresh vectorstore.")
 
 
 def async_embed_docs():
