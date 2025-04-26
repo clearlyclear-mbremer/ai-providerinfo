@@ -22,10 +22,15 @@ def load_vectorstore():
     with store_lock:
         print("🔄 Loading vectorstore...")
 
-        if not os.path.exists("./chroma_store") or not os.listdir("./chroma_store"):
-            print("⚠️ Chroma store missing or empty. Skipping load.")
+        # 🧹 Close old vectorstore if exists
+        if vectordb:
+            print("🧹 Closing old vectorstore connection...")
+            vectordb._client.reset()
             vectordb = None
             qa_chain = None
+
+        if not os.path.exists("./chroma_store") or not os.listdir("./chroma_store"):
+            print("⚠️ Chroma store missing or empty. Skipping load.")
             return
 
         embeddings = OpenAIEmbeddings()
@@ -42,6 +47,7 @@ def load_vectorstore():
             retriever=vectordb.as_retriever(search_kwargs={"k": 3})
         )
         print("✅ Vectorstore and QA chain loaded.")
+
 
 def async_embed_docs():
     """Run embed_docs.py asynchronously after startup or webhook."""
