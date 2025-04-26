@@ -49,7 +49,6 @@ def run_embed_docs_at_startup():
 
 # 🧠 Actually run it at startup
 run_embed_docs_at_startup()
-load_vectorstore()
 
 @app.route("/ask", methods=["POST"])
 def ask():
