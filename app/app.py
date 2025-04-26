@@ -22,10 +22,10 @@ def load_vectorstore():
     print("🔄 Loading vectorstore...")
 
     if not os.path.exists("./chroma_store") or not os.listdir("./chroma_store"):
-    print("⚠️ Chroma store missing or empty. Skipping load.")
-    vectordb = None
-    qa_chain = None
-    return
+        print("⚠️ Chroma store missing or empty. Skipping load.")
+        vectordb = None
+        qa_chain = None
+        return
 
     embeddings = OpenAIEmbeddings()
     vectordb = Chroma(
