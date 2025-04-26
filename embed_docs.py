@@ -41,13 +41,17 @@ def main():
     if not docs:
         raise RuntimeError("❌ No documents fetched from Confluence!")
 
-    # Step 3: Split into chunks
+    # Step 3: Split into chunks properly
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = docs
+    chunks = splitter.split_documents(docs)
     print(f"✅ Split into {len(chunks)} chunks")
 
     if not chunks:
         raise RuntimeError("❌ No document chunks created after splitting!")
+
+    # (Optional) Debug: Show chunk contents
+    for idx, chunk in enumerate(chunks):
+        print(f"---- Chunk {idx+1} ----\n{chunk.page_content[:300]}...\n")
 
     # Step 4: Build Chroma vectorstore into TEMP directory
     embeddings = OpenAIEmbeddings()
