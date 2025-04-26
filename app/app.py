@@ -18,8 +18,6 @@ vectordb = None
 qa_chain = None
 store_lock = threading.Lock()  # 🛡️ Protect reloading with a lock
 
-
-
 def load_vectorstore():
     global vectordb, qa_chain
     with store_lock:
@@ -27,7 +25,8 @@ def load_vectorstore():
 
         if vectordb:
             print("🧹 Closing old vectorstore connection...")
-            vectordb._client.reset()
+            vectordb._collection = None
+            vectordb._client = None
             vectordb = None
             qa_chain = None
 
@@ -47,31 +46,11 @@ def load_vectorstore():
         print(f"✅ Vectorstore loaded with {vectordb._collection.count()} records.")
 
         retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-
-        # 🛠 Custom prompt to inject retrieved content
-        custom_prompt = PromptTemplate(
-            input_variables=["context", "question"],
-            template="""Use the following pieces of context to answer the question.
-If the answer cannot be found in the context, say "I don't know."
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer:"""
-        )
-
         qa_chain = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(model="gpt-4"),
-            retriever=retriever,
-            chain_type="stuff",
-            chain_type_kwargs={"prompt": custom_prompt},
+            retriever=retriever
         )
-        print("✅ Vectorstore and QA chain loaded with custom prompt.")
-
-
+        print("✅ QA chain recreated with fresh vectorstore.")
 
 def async_embed_docs():
     """Run embed_docs.py asynchronously after startup or webhook."""
