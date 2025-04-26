@@ -43,7 +43,7 @@ def main():
 
     # Step 3: Split into chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = splitter.split_documents(docs)
+    chunks = docs
     print(f"✅ Split into {len(chunks)} chunks")
 
     if not chunks:
