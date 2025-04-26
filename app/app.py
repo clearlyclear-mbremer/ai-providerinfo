@@ -73,7 +73,9 @@ load_vectorstore()
 def ask():
     global vectordb, qa_chain
 
+    # Double check if reload is needed
     if vectordb is None or qa_chain is None:
+        print("⚠️ Vectorstore or QA chain not loaded, trying to reload...")
         load_vectorstore()
 
     data = request.get_json()
@@ -85,19 +87,21 @@ def ask():
         answer = qa_chain.run(query)
         return jsonify({"answer": answer})
     except Exception as e:
-        # Special handling if Chroma store is missing
+        # Handle specific Chroma errors
         if "does not exist" in str(e):
-            print("⚠️ Vectorstore was empty. Retrying load...")
-            time.sleep(2)  # Wait briefly
-            load_vectorstore()  # Try reloading
+            print("⚠️ Detected missing vectorstore during question. Retrying after reload...")
+            time.sleep(1)
+            load_vectorstore()
 
             try:
                 answer = qa_chain.run(query)
                 return jsonify({"answer": answer})
             except Exception as inner_e:
                 return jsonify({"error": str(inner_e)}), 500
+        else:
+            print(f"❌ Error during ask: {e}")
+            return jsonify({"error": str(e)}), 500
 
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/ask_ui", methods=["GET"])
