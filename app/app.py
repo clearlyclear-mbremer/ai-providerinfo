@@ -32,10 +32,9 @@ def load_vectorstore():
     with store_lock:
         print("🔄 Loading vectorstore...")
 
-        # Close old
+        # 🧹 Just drop references safely, don't call reset()
         if vectordb:
-            print("🧹 Closing old vectorstore...")
-            vectordb._client.reset()
+            print("🧹 Dropping old vectorstore references...")
             vectordb = None
             qa_chain = None
 
@@ -63,6 +62,7 @@ def load_vectorstore():
             retriever=vectordb.as_retriever(search_kwargs={"k": 3}),
         )
         print(f"✅ Vectorstore and QA chain loaded using collection: {collection_name}")
+
 
 def async_embed_docs():
     try:
