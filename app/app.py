@@ -7,6 +7,8 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.chains import RetrievalQA
 from chromadb.config import Settings as ChromaSettings
+from langchain.prompts import PromptTemplate
+from langchain.chains import RetrievalQA
 
 # Initialize Flask app
 app = Flask(__name__, template_folder="../templates")
@@ -16,13 +18,13 @@ vectordb = None
 qa_chain = None
 store_lock = threading.Lock()  # 🛡️ Protect reloading with a lock
 
+
+
 def load_vectorstore():
-    """Load the Chroma vectorstore and set up the QA chain."""
     global vectordb, qa_chain
     with store_lock:
         print("🔄 Loading vectorstore...")
 
-        # 🧹 Close old vectorstore if exists
         if vectordb:
             print("🧹 Closing old vectorstore connection...")
             vectordb._client.reset()
@@ -33,7 +35,6 @@ def load_vectorstore():
             print("⚠️ Chroma store missing or empty. Skipping load.")
             return
 
-        # 💥 Force Chroma to fully reconnect fresh
         embeddings = OpenAIEmbeddings()
         vectordb = Chroma(
             persist_directory="./chroma_store",
@@ -45,12 +46,31 @@ def load_vectorstore():
         )
         print(f"✅ Vectorstore loaded with {vectordb._collection.count()} records.")
 
-        # 💥 Create a completely new QA chain too!
+        retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+
+        # 🛠 Custom prompt to inject retrieved content
+        custom_prompt = PromptTemplate(
+            input_variables=["context", "question"],
+            template="""Use the following pieces of context to answer the question.
+If the answer cannot be found in the context, say "I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:"""
+        )
+
         qa_chain = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(model="gpt-4"),
-            retriever=vectordb.as_retriever(search_kwargs={"k": 3})
+            retriever=retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": custom_prompt},
         )
-        print("✅ QA chain recreated with fresh vectorstore.")
+        print("✅ Vectorstore and QA chain loaded with custom prompt.")
+
 
 
 def async_embed_docs():
