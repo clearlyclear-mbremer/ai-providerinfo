@@ -8,21 +8,20 @@ from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 
-# Delete old Chroma store if it exists to ensure full refresh
 chroma_dir = "./chroma_store"
+temp_dir = "./chroma_store_tmp"
 
-if os.path.exists(chroma_dir):
-    shutil.rmtree(chroma_dir)
-    # Confirm deletion before proceeding
-    timeout = 10  # seconds
+# Step 1: Clean temp_dir first
+if os.path.exists(temp_dir):
+    shutil.rmtree(temp_dir)
+    timeout = 10
     start_time = time.time()
-    while os.path.exists(chroma_dir):
+    while os.path.exists(temp_dir):
         if time.time() - start_time > timeout:
-            raise RuntimeError(f"Timeout: Directory '{chroma_dir}' could not be deleted in time.")
-        time.sleep(0.1)  # sleep 100ms and retry
+            raise RuntimeError(f"Timeout: Temporary directory '{temp_dir}' could not be deleted in time.")
+        time.sleep(0.1)
 
-
-# Load Confluence docs
+# Step 2: Load Confluence docs
 loader = ConfluenceLoader(
     url=os.environ["CONFLUENCE_URL"],
     username=os.environ["CONFLUENCE_USERNAME"],
@@ -32,31 +31,31 @@ loader = ConfluenceLoader(
 )
 docs = loader.load()
 print(f"✅ Loaded {len(docs)} Confluence pages")
-for idx, doc in enumerate(docs):
-    print(f"\n---- Document {idx+1} ----")
-    print(doc.page_content)
 
-# Split into chunks
+# Step 3: Split into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 chunks = splitter.split_documents(docs)
 print(f"✅ Split into {len(chunks)} chunks")
-for idx, chunk in enumerate(chunks):
-    print(f"\n---- Chunk {idx+1} ----")
-    print(chunk.page_content)
 
-# Embed with updated OpenAI package (make sure it's installed via requirements.txt)
+# Step 4: Build Chroma vectorstore into TEMP directory
 embeddings = OpenAIEmbeddings()
-
-# Load or create Chroma DB
-vectordb = Chroma(persist_directory=chroma_dir, embedding_function=embeddings)
-
-# Add new documents (duplicates are possible if not filtered manually)
+vectordb = Chroma(
+    persist_directory=temp_dir,
+    embedding_function=embeddings
+)
 vectordb.add_documents(chunks)
 
-print(f"✅ Rebuilt Chroma vector store with {len(chunks)} chunks")
+print(f"✅ Temporary Chroma vectorstore created with {len(chunks)} chunks")
 
-# After embedding, call the /refresh endpoint
-refresh_url = os.getenv("REFRESH_URL", "https://ai-providerinfo.onrender.com/refresh")  # Default to localhost if not set
+# Step 5: Atomically swap temp_dir into chroma_dir
+if os.path.exists(chroma_dir):
+    shutil.rmtree(chroma_dir)
+os.rename(temp_dir, chroma_dir)
+
+print("✅ Atomically replaced old Chroma store with new one")
+
+# Step 6: Tell the app to refresh
+refresh_url = os.getenv("REFRESH_URL", "https://ai-providerinfo.onrender.com/refresh")
 try:
     response = requests.post(refresh_url)
     if response.status_code == 200:
