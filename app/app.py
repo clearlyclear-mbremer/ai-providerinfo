@@ -20,6 +20,13 @@ def load_vectorstore():
     """Load the Chroma vectorstore and set up the QA chain."""
     global vectordb, qa_chain
     print("🔄 Loading vectorstore...")
+
+    if not os.path.exists("./chroma_store"):
+        print("⚠️ No Chroma store found yet. Skipping load.")
+        vectordb = None
+        qa_chain = None
+        return
+
     embeddings = OpenAIEmbeddings()
     vectordb = Chroma(
         persist_directory="./chroma_store",
